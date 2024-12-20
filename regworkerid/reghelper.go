@@ -211,6 +211,81 @@ func RegisterOne(conf RegisterConf) int32 {
 	return id
 }
 
+func RegisterOneWithClient(conf RegisterConf, redisClient redis.UniversalClient) int32 {
+	if conf.MaxWorkerId < 0 || conf.MinWorkerId > conf.MaxWorkerId {
+		return -2
+	}
+
+	_MaxWorkerId = conf.MaxWorkerId
+	_MinWorkerId = conf.MinWorkerId
+	_RedisConnString = conf.Address
+	_RedisPassword = conf.Password
+	_RedisDB = conf.DB
+	_RedisMasterName = conf.MasterName
+	_WorkerIdLifeTimeSeconds = conf.LifeTimeSeconds
+	_loopCount = 0
+
+	_client = redisClient
+
+	autoUnRegister()
+
+	_lifeIndex++
+	var id = register(_lifeIndex)
+	if id > -1 {
+		_workerIdList = []int32{id}
+		go extendLifeTime(_lifeIndex)
+	}
+
+	return id
+}
+
+func RegisterManyWithClient(conf RegisterConf, redisClient redis.UniversalClient) []int32 {
+	if conf.MaxWorkerId < 0 || conf.MinWorkerId > conf.MaxWorkerId {
+		return []int32{-2}
+	}
+
+	if conf.TotalCount < 1 {
+		return []int32{-1}
+	} else if conf.TotalCount == 0 {
+		conf.TotalCount = 1
+	}
+
+	_MaxWorkerId = conf.MaxWorkerId
+	_MinWorkerId = conf.MinWorkerId
+	_RedisConnString = conf.Address
+	_RedisPassword = conf.Password
+	_RedisDB = conf.DB
+	_RedisMasterName = conf.MasterName
+	_WorkerIdLifeTimeSeconds = conf.LifeTimeSeconds
+
+	_client = redisClient
+
+	autoUnRegister()
+
+	_lifeIndex++
+	_workerIdList = make([]int32, conf.TotalCount)
+	for key := range _workerIdList {
+		_workerIdList[key] = -1 // 全部初始化-1
+	}
+
+	useExtendFunc := false
+	for key := range _workerIdList {
+		id := register(_lifeIndex)
+		if id > -1 {
+			useExtendFunc = true
+			_workerIdList[key] = id //= append(_workerIdList, id)
+		} else {
+			break
+		}
+	}
+
+	if useExtendFunc {
+		go extendLifeTime(_lifeIndex)
+	}
+
+	return _workerIdList
+}
+
 func register(lifeTime int32) int32 {
 	_loopCount = 0
 	return getNextWorkerId(lifeTime)
