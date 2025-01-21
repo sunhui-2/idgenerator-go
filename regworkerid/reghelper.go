@@ -309,6 +309,7 @@ func getNextWorkerId(lifeTime int32) int32 {
 	// 获取当前 WorkerIdIndex
 	r, err := _client.Incr(_ctx, _WorkerIdIndexKey).Result()
 	if err != nil {
+		fmt.Println(err.Error())
 		return -1
 	}
 
@@ -451,6 +452,7 @@ func extendWorkerIdLifeTime(lifeIndex int32, workerId int32) {
 func get(key string) (string, bool) {
 	r, err := _client.Get(_ctx, key).Result()
 	if err != nil {
+		fmt.Println(err.Error())
 		return "", false
 	}
 	return r, true
@@ -459,6 +461,7 @@ func get(key string) (string, bool) {
 func del(key string) (int64, bool) {
 	r, err := _client.Del(_ctx, key).Result()
 	if err != nil {
+		fmt.Println(err.Error())
 		return 0, false
 	}
 	return r, true
@@ -493,6 +496,7 @@ func extendWorkerIdFlag(workerId int32) {
 func canReset() bool {
 	r, err := _client.Incr(_ctx, _WorkerIdValueKeyPrefix+"Edit").Result()
 	if err != nil {
+		fmt.Println(err.Error())
 		return false
 	}
 
@@ -511,6 +515,7 @@ func endReset() {
 func getWorkerIdFlag(workerId int32) (string, bool) {
 	r, err := _client.Get(_ctx, _WorkerIdValueKeyPrefix+strconv.Itoa(int(workerId))).Result()
 	if err != nil {
+		fmt.Println(err.Error())
 		return "", false
 	}
 	return r, true
